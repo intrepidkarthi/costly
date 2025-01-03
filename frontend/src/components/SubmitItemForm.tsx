@@ -11,7 +11,8 @@ const formSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   category_id: z.number().min(1, 'Category is required'),
   price: z.number().min(1, 'Price is required'),
-  image_url: z.string().url('Must be a valid URL')
+  image_url: z.string().url('Must be a valid URL'),
+  contact_email: z.string().email('Must be a valid email')
 })
 
 type SubmitItemFormData = z.infer<typeof formSchema>
@@ -55,12 +56,6 @@ export function SubmitItemForm() {
     setError('')
 
     try {
-      // Check if user is authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        throw new Error('Please log in to submit items')
-      }
-
       // Get country_id for India
       const { data: countryData, error: countryError } = await supabase
         .from('countries')
@@ -82,7 +77,8 @@ export function SubmitItemForm() {
         currency: 'INR',
         image_url: data.image_url,
         status: 'pending',
-        submitted_by: user.id
+        contact_email: data.contact_email,
+        submitted_by: null
       })
 
       if (submitError) {
@@ -102,16 +98,23 @@ export function SubmitItemForm() {
 
   if (submitSuccess) {
     return (
-      <div className="text-center py-10">
-        <h3 className="text-2xl font-bold text-amber-500 mb-4">
-          Item Submitted Successfully!
+      <div className="text-center py-8">
+        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="text-2xl font-bold mb-4">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500">
+            Item Submitted Successfully!
+          </span>
         </h3>
-        <p className="text-gray-400 mb-6">
-          Your item has been submitted for review. We'll notify you once it's approved.
+        <p className="text-gray-400 mb-8">
+          Thank you for your submission. Our team will review your item and get back to you soon.
         </p>
         <button
           onClick={() => setSubmitSuccess(false)}
-          className="bg-amber-500 text-white px-6 py-2 rounded-md hover:bg-amber-600 transition-colors"
+          className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all duration-300"
         >
           Submit Another Item
         </button>
@@ -120,102 +123,132 @@ export function SubmitItemForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 rounded-md p-4">
-          {error}
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <p className="text-red-400">{error}</p>
         </div>
       )}
 
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-300">
-          Name
-        </label>
-        <input
-          type="text"
-          id="name"
-          {...register('name')}
-          className="mt-1 block w-full rounded-md border border-gray-700 bg-gray-800 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500"
-        />
-        {errors.name && (
-          <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
-        )}
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="name" className="block text-gray-300 mb-2">
+            Item Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            {...register('name')}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+            placeholder="e.g., Rolex Daytona"
+          />
+          {errors.name && (
+            <p className="mt-1 text-red-400">{errors.name.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="category" className="block text-gray-300 mb-2">
+            Category
+          </label>
+          <select
+            id="category"
+            {...register('category_id', { valueAsNumber: true })}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+          >
+            <option value="">Select a category</option>
+            {categories.map((category: any) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          {errors.category_id && (
+            <p className="mt-1 text-red-400">{errors.category_id.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="price" className="block text-gray-300 mb-2">
+            Price (INR)
+          </label>
+          <input
+            id="price"
+            type="number"
+            {...register('price', { valueAsNumber: true })}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+            placeholder="e.g., 1000000"
+          />
+          {errors.price && (
+            <p className="mt-1 text-red-400">{errors.price.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-gray-300 mb-2">
+            Description
+          </label>
+          <textarea
+            id="description"
+            {...register('description')}
+            rows={4}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+            placeholder="Describe your luxury item in detail..."
+          />
+          {errors.description && (
+            <p className="mt-1 text-red-400">{errors.description.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="image_url" className="block text-gray-300 mb-2">
+            Image URL
+          </label>
+          <input
+            id="image_url"
+            type="url"
+            {...register('image_url')}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+            placeholder="https://example.com/image.jpg"
+          />
+          {errors.image_url && (
+            <p className="mt-1 text-red-400">{errors.image_url.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="contact_email" className="block text-gray-300 mb-2">
+            Contact Email
+          </label>
+          <input
+            id="contact_email"
+            type="email"
+            {...register('contact_email')}
+            className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
+            placeholder="your@email.com"
+          />
+          {errors.contact_email && (
+            <p className="mt-1 text-red-400">{errors.contact_email.message}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-300">
-          Description
-        </label>
-        <textarea
-          id="description"
-          rows={4}
-          {...register('description')}
-          className="mt-1 block w-full rounded-md border border-gray-700 bg-gray-800 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500"
-        />
-        {errors.description && (
-          <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-300">
-          Category
-        </label>
-        <select
-          id="category"
-          {...register('category_id', { valueAsNumber: true })}
-          className="mt-1 block w-full rounded-md border border-gray-700 bg-gray-800 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500"
-        >
-          <option value="">Select a category</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {errors.category_id && (
-          <p className="mt-1 text-sm text-red-500">{errors.category_id.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="price" className="block text-sm font-medium text-gray-300">
-          Price (INR)
-        </label>
-        <input
-          type="number"
-          id="price"
-          {...register('price', { valueAsNumber: true })}
-          className="mt-1 block w-full rounded-md border border-gray-700 bg-gray-800 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500"
-        />
-        {errors.price && (
-          <p className="mt-1 text-sm text-red-500">{errors.price.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="image_url" className="block text-sm font-medium text-gray-300">
-          Image URL
-        </label>
-        <input
-          type="url"
-          id="image_url"
-          {...register('image_url')}
-          className="mt-1 block w-full rounded-md border border-gray-700 bg-gray-800 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500"
-          placeholder="https://example.com/image.jpg"
-        />
-        {errors.image_url && (
-          <p className="mt-1 text-sm text-red-500">{errors.image_url.message}</p>
-        )}
-      </div>
-
-      <div>
+      <div className="pt-4">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-amber-500 py-2 px-4 text-white hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`w-full px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all duration-300 flex items-center justify-center ${
+            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Item'}
+          {isSubmitting ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
+              Submitting...
+            </>
+          ) : (
+            'Submit Item'
+          )}
         </button>
       </div>
     </form>

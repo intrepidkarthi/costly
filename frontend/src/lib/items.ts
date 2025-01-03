@@ -146,3 +146,115 @@ export async function getItems(filter: ItemsFilter = {}): Promise<PaginatedItems
     throw error
   }
 }
+
+export async function getItemsByCategory(categoryId: number): Promise<Item[]> {
+  const { data, error } = await supabase
+    .from('items')
+    .select('*, category:categories(*)')
+    .eq('category_id', categoryId)
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getItemsByCategory: Supabase error:', error)
+    throw error
+  }
+
+  if (!data) {
+    return []
+  }
+
+  return data.map(item => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: Number(item.price),
+    image_url: item.image_url,
+    category_id: item.category_id,
+    category: {
+      id: item.category?.id,
+      name: item.category?.name
+    },
+    created_at: item.created_at,
+    status: item.status as 'pending' | 'approved' | 'rejected'
+  }))
+}
+
+export async function getItemById(id: number): Promise<Item | null> {
+  const { data, error } = await supabase
+    .from('items')
+    .select('*, category:categories(*)')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null
+    }
+    console.error('getItemById: Supabase error:', error)
+    throw error
+  }
+
+  if (!data) {
+    return null
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    price: Number(data.price),
+    image_url: data.image_url,
+    category_id: data.category_id,
+    category: {
+      id: data.category?.id,
+      name: data.category?.name
+    },
+    created_at: data.created_at,
+    status: data.status as 'pending' | 'approved' | 'rejected'
+  }
+}
+
+export async function getPendingItems(): Promise<Item[]> {
+  const { data, error } = await supabase
+    .from('items')
+    .select('*, category:categories(*)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getPendingItems: Supabase error:', error)
+    throw error
+  }
+
+  if (!data) {
+    return []
+  }
+
+  return data.map(item => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: Number(item.price),
+    image_url: item.image_url,
+    category_id: item.category_id,
+    category: {
+      id: item.category?.id,
+      name: item.category?.name
+    },
+    created_at: item.created_at,
+    status: item.status as 'pending' | 'approved' | 'rejected'
+  }))
+}
+
+export async function updateItemStatus(id: number, status: 'approved' | 'rejected'): Promise<void> {
+  const { error } = await supabase
+    .from('items')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) {
+    console.error('updateItemStatus: Supabase error:', error)
+    throw error
+  }
+}

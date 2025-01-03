@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Logo } from './Logo'
 
 export function Navbar() {
   const pathname = usePathname()
@@ -27,12 +28,7 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link 
-            href="/" 
-            className="text-2xl font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 text-transparent bg-clip-text"
-          >
-            COSTLY
-          </Link>
+          <Logo />
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">

@@ -2,151 +2,189 @@
 
 import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/Navbar'
+import { getPendingItems, updateItemStatus, type Item } from '@/lib/items'
 import { supabase } from '@/lib/supabase'
 
-interface PendingItem {
-  id: number
-  name: string
-  category: string
-  price: number
-  created_at: string
+interface DashboardStats {
+  pendingCount: number
+  totalItems: number
+  categoriesCount: number
 }
 
 export default function AdminDashboardPage() {
-  const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
-  const [stats, setStats] = useState({
+  const [pendingItems, setPendingItems] = useState<Item[]>([])
+  const [stats, setStats] = useState<DashboardStats>({
     pendingCount: 0,
     totalItems: 0,
     categoriesCount: 0,
   })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
   async function fetchDashboardData() {
-    // Fetch pending items
-    const { data: pending } = await supabase
-      .from('items')
-      .select('id, name, category_id, price, created_at')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+    try {
+      setLoading(true)
+      setError(null)
 
-    // Fetch stats
-    const { count: pendingCount } = await supabase
-      .from('items')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending')
+      // Fetch pending items using our new function
+      const items = await getPendingItems()
+      setPendingItems(items)
 
-    const { count: totalItems } = await supabase
-      .from('items')
-      .select('*', { count: 'exact', head: true })
+      // Fetch stats
+      const [
+        { count: pendingCount },
+        { count: totalItems },
+        { count: categoriesCount }
+      ] = await Promise.all([
+        supabase
+          .from('items')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+        supabase
+          .from('items')
+          .select('*', { count: 'exact', head: true }),
+        supabase
+          .from('categories')
+          .select('*', { count: 'exact', head: true })
+      ])
 
-    const { count: categoriesCount } = await supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true })
-
-    setPendingItems(pending || [])
-    setStats({
-      pendingCount: pendingCount || 0,
-      totalItems: totalItems || 0,
-      categoriesCount: categoriesCount || 0,
-    })
+      setStats({
+        pendingCount: pendingCount || 0,
+        totalItems: totalItems || 0,
+        categoriesCount: categoriesCount || 0,
+      })
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err)
+      setError('Failed to load dashboard data. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleApprove(itemId: number) {
-    const { error } = await supabase
-      .from('items')
-      .update({ status: 'approved' })
-      .eq('id', itemId)
-
-    if (!error) {
-      fetchDashboardData()
+    try {
+      await updateItemStatus(itemId, 'approved')
+      await fetchDashboardData()
+    } catch (err) {
+      console.error('Error approving item:', err)
+      // You might want to show a toast notification here
     }
   }
 
   async function handleReject(itemId: number) {
-    const { error } = await supabase
-      .from('items')
-      .update({ status: 'rejected' })
-      .eq('id', itemId)
-
-    if (!error) {
-      fetchDashboardData()
+    try {
+      await updateItemStatus(itemId, 'rejected')
+      await fetchDashboardData()
+    } catch (err) {
+      console.error('Error rejecting item:', err)
+      // You might want to show a toast notification here
     }
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#0A0A0A]">
       <Navbar />
-      <div className="container mx-auto px-4 pt-24 pb-12">
-        <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      <div className="container mx-auto px-4 pt-32 pb-12">
+        <h1 className="text-5xl font-bold mb-12">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500">
+            Admin Dashboard
+          </span>
+        </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Pending Reviews</h3>
-            <p className="text-3xl font-bold text-amber-400">{stats.pendingCount}</p>
+        {error ? (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-8">
+            <p className="text-red-400">{error}</p>
           </div>
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Total Items</h3>
-            <p className="text-3xl font-bold text-amber-400">{stats.totalItems}</p>
-          </div>
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Categories</h3>
-            <p className="text-3xl font-bold text-amber-400">{stats.categoriesCount}</p>
-          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {[
+            { label: 'Pending Reviews', value: stats.pendingCount },
+            { label: 'Total Items', value: stats.totalItems },
+            { label: 'Categories', value: stats.categoriesCount }
+          ].map((stat, index) => (
+            <div key={index} className="bg-gradient-to-br from-gray-900 via-gray-900 to-black p-8 rounded-2xl border border-amber-500/10">
+              <h3 className="text-xl font-semibold mb-2 text-gray-400">{stat.label}</h3>
+              <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500">
+                {stat.value}
+              </p>
+            </div>
+          ))}
         </div>
 
-        <div className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-6">Pending Submissions</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-gray-800">
-                  <th className="pb-3">Item Name</th>
-                  <th className="pb-3">Category</th>
-                  <th className="pb-3">Price (INR)</th>
-                  <th className="pb-3">Submitted At</th>
-                  <th className="pb-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingItems.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-800">
-                    <td className="py-4">{item.name}</td>
-                    <td>{item.category}</td>
-                    <td>₹{item.price.toLocaleString('en-IN')}</td>
-                    <td>{new Date(item.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(item.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(item.id)}
-                          className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </td>
+        <div className="bg-gradient-to-br from-gray-900 via-gray-900 to-black rounded-2xl border border-amber-500/10 p-8">
+          <h2 className="text-3xl font-bold mb-8">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500">
+              Pending Submissions
+            </span>
+          </h2>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="inline-flex flex-col items-center">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 rounded-full border-4 border-amber-400/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin" />
+                </div>
+                <p className="mt-4 text-gray-400">Loading submissions...</p>
+              </div>
+            </div>
+          ) : pendingItems.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400">No pending submissions to review</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-amber-500/10">
+                    <th className="text-left py-4 px-4 text-gray-400 font-medium">Item</th>
+                    <th className="text-left py-4 px-4 text-gray-400 font-medium">Category</th>
+                    <th className="text-left py-4 px-4 text-gray-400 font-medium">Price</th>
+                    <th className="text-left py-4 px-4 text-gray-400 font-medium">Submitted</th>
+                    <th className="text-right py-4 px-4 text-gray-400 font-medium">Actions</th>
                   </tr>
-                ))}
-                {pendingItems.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-4 text-center text-gray-400">
-                      No pending submissions
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {pendingItems.map((item) => (
+                    <tr key={item.id} className="border-b border-amber-500/10 last:border-0">
+                      <td className="py-4 px-4">
+                        <div className="font-medium text-white">{item.name}</div>
+                        <div className="text-sm text-gray-400">{item.description.slice(0, 100)}...</div>
+                      </td>
+                      <td className="py-4 px-4 text-gray-400">{item.category.name}</td>
+                      <td className="py-4 px-4 text-gray-400">₹{item.price.toLocaleString()}</td>
+                      <td className="py-4 px-4 text-gray-400">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleApprove(item.id)}
+                            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg hover:from-amber-600 hover:to-amber-700 transition-all duration-300"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(item.id)}
+                            className="px-4 py-2 border border-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/10 transition-all duration-300"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

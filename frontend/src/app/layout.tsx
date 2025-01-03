@@ -1,12 +1,20 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
+import { Playfair_Display, Inter } from 'next/font/google'
 
+const playfair = Playfair_Display({ subsets: ['latin'] })
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'Costly - Premium Items Catalog',
-  description: 'Discover the most luxurious and expensive items in India',
+export const metadata = {
+  title: 'Costly.in - Premium Luxury Items in India',
+  description: 'Discover and explore the finest luxury items available in India. From cars to watches, real estate to jewelry.',
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      }
+    ]
+  }
 }
 
 export default function RootLayout({
@@ -15,12 +23,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} overflow-x-hidden`}>
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
-          {children}
-        </div>
-      </body>
+    <html lang="en">
+      <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
   )
 }
