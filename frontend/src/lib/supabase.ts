@@ -23,7 +23,6 @@ export const supabase = createClient(
     },
     db: {
       schema: 'public'
-    },
-    storageClient: false
+    }
   }
 )
