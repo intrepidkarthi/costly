@@ -1,7 +1,10 @@
 import { CategoryCard } from '@/components/CategoryCard'
 import { CategoryStats } from '@/components/CategoryStats'
 import { TrendingCategories } from '@/components/TrendingCategories'
+import { Playfair_Display } from 'next/font/google'
 import Link from 'next/link'
+
+const playfair = Playfair_Display({ subsets: ['latin'] })
 
 const CATEGORIES = [
   {
