@@ -17,11 +17,16 @@ const formSchema = z.object({
 
 type SubmitItemFormData = z.infer<typeof formSchema>
 
+interface Category {
+  id: number
+  name: string
+}
+
 export function SubmitItemForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState<Category[]>([])
 
   const {
     register,
@@ -157,7 +162,7 @@ export function SubmitItemForm() {
             className="w-full px-4 py-3 bg-black/50 border border-amber-500/20 rounded-xl focus:outline-none focus:border-amber-500/40 text-white"
           >
             <option value="">Select a category</option>
-            {categories.map((category: any) => (
+            {categories.map((category: Category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
