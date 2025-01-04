@@ -10,6 +10,7 @@ interface OptimizedImageProps {
   fill?: boolean
   width?: number
   height?: number
+  sizes?: string
 }
 
 export function OptimizedImage({
@@ -19,6 +20,7 @@ export function OptimizedImage({
   fill = false,
   width,
   height,
+  sizes,
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -45,6 +47,7 @@ export function OptimizedImage({
         fill={fill}
         width={!fill ? width : undefined}
         height={!fill ? height : undefined}
+        sizes={sizes}
         className={`duration-700 ease-in-out ${
           isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
         } ${fill ? 'object-cover' : ''}`}
