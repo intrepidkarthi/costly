@@ -11,6 +11,7 @@ interface OptimizedImageProps {
   width?: number
   height?: number
   sizes?: string
+  priority?: boolean
 }
 
 export function OptimizedImage({
@@ -21,6 +22,7 @@ export function OptimizedImage({
   width,
   height,
   sizes,
+  priority = false
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -53,7 +55,7 @@ export function OptimizedImage({
         } ${fill ? 'object-cover' : ''}`}
         onLoad={() => setIsLoading(false)}
         onError={() => setError(true)}
-        priority={true}
+        priority={priority}
         unoptimized={true}
       />
       {isLoading && (
